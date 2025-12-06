@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema Hidráulico - Controlo de Demanda</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; } 
+
+        /* --- NOVO HEADER (AGRICULTORES) --- */
+        #header-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: rgba(30, 30, 30, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .farmer-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .farmer-title { font-weight: bold; margin-right: 10px; color: #4CAF50; }
+
+        .farmer-check {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .farmer-check input { margin-right: 5px; cursor: pointer; transform: scale(1.2); }
+
+        /* --- INDICADOR DE NÍVEL (Ajustado posição por causa do header) --- */
+        #level-indicator {
+            position: absolute;
+            top: 80px; /* Baixei para não ficar baixo do header */
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 20;
+            border-left: 5px solid #4CAF50; 
+        }
+
+        .level-text { font-size: 18px; }
+        .level-label { font-size: 12px; color: #aaa; display: block; }
+
+        /* --- PAINEL DE CONTROLO (Direita) --- */
+        #ui-panel {
+            position: absolute;
+            top: 80px; /* Baixei para não ficar baixo do header */
+            right: 15px;
+            width: 280px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 10;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        h3 { text-align: center; color: #333; margin-top: 0; margin-bottom: 15px; }
+        h4 { margin: 10px 0 5px 0; font-size: 13px; color: #666; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        
+        .gate-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f9f9f9;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 5px solid #ccc;
+        }
+
+        .gate-label { font-weight: bold; font-size: 13px; }
+
+        button {
+            border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;
+            font-size: 11px; font-weight: bold; transition: 0.2s;
+        }
+
+        .btn-open { background-color: #e0e0e0; color: #333; }
+        .btn-open:hover { background-color: #4CAF50; color: white; }
+
+        .btn-close { background-color: #e0e0e0; color: #333; }
+        .btn-close:hover { background-color: #F44336; color: white; }
+
+        .btn-master { width: 48%; padding: 10px; margin-top: 5px; }
+        .level-controls { display: flex; gap: 5px; margin-top: 5px; }
+        .btn-level { flex: 1; padding: 5px; font-size: 10px; }
+
+        #rain-alert {
+            display: none; background-color: #ffcccc; color: #cc0000;
+            padding: 10px; border-radius: 5px; margin-top: 10px;
+            font-size: 12px; text-align: center; border: 1px solid #cc0000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-panel">        
+
+        <img src="https://dig.org.br/img/logo-rodape.png?1725446943" style="position: absolute; bottom: 10px; left: 10px; width: 80px; opacity: 0.7;">
+          
+        <span class="farmer-title">🚜 DEMANDA DE AGRICULTORES:</span>
+        <div class="farmer-group">
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 1</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 2</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 3</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 4</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 5</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 6</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 7</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 8</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 9</label>
+            <label class="farmer-check"><input type="checkbox" class="farmer-input" onchange="checkFarmerDemand()"> 10</label>
+            <span id="farmer-count" style="margin-left: 10px; color: #aaa; font-size: 12px;">(0 Ativos)</span>
+        </div>
+    </div>
+
+    <div id="level-indicator">
+        <div>
+            <span class="level-label">NÍVEL DA ÁGUA</span>
+            <span id="level-value" class="level-text">NORMAL</span>
+        </div>
+    </div>
+
+
+    <div id="ui-panel">
+        <h3>🎛️ Centro de Comando</h3>
+        <div id="rain-alert">⚠️ ALERTA: Chuva detetada! Sistema bloqueado.</div>
+
+        <h4>Sensores de Nível</h4>
+        <div class="level-controls">
+            <button class="btn-level" onclick="setWaterLevel('LOW')" style="background: #FFC107; color: black;">BAIXO</button>
+            <button class="btn-level" onclick="setWaterLevel('NORMAL')" style="background: #4CAF50; color: white;">NORMAL</button>
+            <button class="btn-level" onclick="setWaterLevel('FULL')" style="background: #F44336; color: white;">CHEIO</button>
+        </div>
+
+        <h4>Comportas Individuais</h4>
+        <div class="gate-row" style="border-left-color: #FF0000;">
+            <span class="gate-label">Seção 1</span>
+            <div>
+                <button class="btn-open" onclick="controlGate(0, true)">ABRIR</button>
+                <button class="btn-close" onclick="controlGate(0, false)">FECHAR</button>
+            </div>
+        </div>
+        <div class="gate-row" style="border-left-color: #00FF00;">
+            <span class="gate-label">Seção 2</span>
+            <div>
+                <button class="btn-open" onclick="controlGate(1, true)">ABRIR</button>
+                <button class="btn-close" onclick="controlGate(1, false)">FECHAR</button>
+            </div>
+        </div>
+        <div class="gate-row" style="border-left-color: #0000FF;">
+            <span class="gate-label">Seção 3</span>
+            <div>
+                <button class="btn-open" onclick="controlGate(2, true)">ABRIR</button>
+                <button class="btn-close" onclick="controlGate(2, false)">FECHAR</button>
+            </div>
+        </div>
+
+        <h4>Controlo Geral</h4>
+        <div style="display: flex; justify-content: space-between;">
+            <button class="btn-master" style="background-color: #4CAF50; color: white;" onclick="setAllGates(true)">ABRIR TUDO</button>
+            <button class="btn-master" style="background-color: #F44336; color: white;" onclick="setAllGates(false)">FECHAR TUDO</button>
+        </div>
+
+        <h4>Ambiente</h4>
+        <button id="btn-rain" onclick="toggleRain()" style="width: 100%; padding: 10px; background-color: #607D8B; color: white; margin-top: 5px;">
+            ATIVAR CHUVA
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
