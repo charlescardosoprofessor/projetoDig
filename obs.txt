@@ -1,3 +1,4 @@
 // --- POSIÇÃO DA CÂMARA MANTIDA ---
     camera.position.set(7, 5, -2); 
     camera.lookAt(0, 0, 1); 
+    color: 0xaaaaff,
