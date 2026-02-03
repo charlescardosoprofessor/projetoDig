@@ -71,6 +71,7 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+
 // ====================================================================
 // 3. ANIMAÇÃO
 // ====================================================================
