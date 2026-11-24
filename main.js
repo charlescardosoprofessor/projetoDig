@@ -8,6 +8,9 @@ let waterMeshes = [];
 let rainSystem;
 let isRaining = false; 
 let sensorLight; 
+let isMosaic = false;
+let mosaicCameras = [];
+const HEADER_HEIGHT = 60;
 
 let isIAActive = false; 
 let currentIAPrediction = 0; 
@@ -58,6 +61,16 @@ function init() {
 
     clock = new THREE.Clock();
 
+    // Câmaras do mosaico: [0] visão geral, [1] vista superior, [2] frontal do canal
+    const aspect = window.innerWidth / window.innerHeight;
+    const camGeral = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+    camGeral.position.set(10, 8, 8); camGeral.lookAt(0, 0, 0);
+    const camTopo = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+    camTopo.position.set(0, 30, 0.01); camTopo.lookAt(0, 0, 0);
+    const camFrontal = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+    camFrontal.position.set(0, 2.5, -22); camFrontal.lookAt(0, 0.5, 0);
+    mosaicCameras = [camGeral, camTopo, camFrontal];
+
     createChannel(); 
     createRain(); 
 
@@ -69,6 +82,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix(); 
     renderer.setSize(window.innerWidth, window.innerHeight);
+    if (isMosaic) positionMosaicLabels();
 }
 
 
@@ -115,7 +129,53 @@ function animate() {
         }
     }
     
-    renderer.render(scene, camera); 
+    if (isMosaic) renderMosaic();
+    else renderer.render(scene, camera); 
+}
+
+// Retângulos (em px, origem no topo) de cada painel: grande à esquerda + 2 empilhados à direita
+function getMosaicRects() {
+    const W = window.innerWidth, H = window.innerHeight - HEADER_HEIGHT, gap = 4;
+    const bigW = Math.floor(W * 2 / 3), smallW = W - bigW, halfH = Math.floor(H / 2);
+    return [
+        { x: 0,    y: HEADER_HEIGHT,              w: bigW - gap,   h: H },
+        { x: bigW, y: HEADER_HEIGHT,              w: smallW,       h: halfH - gap },
+        { x: bigW, y: HEADER_HEIGHT + halfH,      w: smallW,       h: H - halfH }
+    ];
+}
+
+function renderMosaic() {
+    const fullH = window.innerHeight;
+    renderer.setScissorTest(true);
+    getMosaicRects().forEach((r, i) => {
+        const glY = fullH - r.y - r.h; // WebGL conta a partir de baixo
+        renderer.setViewport(r.x, glY, r.w, r.h);
+        renderer.setScissor(r.x, glY, r.w, r.h);
+        const cam = mosaicCameras[i];
+        cam.aspect = r.w / r.h;
+        cam.updateProjectionMatrix();
+        renderer.render(scene, cam);
+    });
+}
+
+function positionMosaicLabels() {
+    getMosaicRects().forEach((r, i) => {
+        const el = document.getElementById('ml-' + i);
+        el.style.left = (r.x + 8) + 'px';
+        el.style.top = (r.y + 8) + 'px';
+    });
+}
+
+function toggleMosaic() {
+    isMosaic = !isMosaic;
+    document.body.classList.toggle('mosaic-mode', isMosaic);
+    document.getElementById('btn-mosaic').innerText = isMosaic ? "📺 FECHAR MOSAICO" : "📺 ABRIR MOSAICO (3 ÂNGULOS)";
+    if (isMosaic) {
+        positionMosaicLabels();
+    } else {
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+    }
 }
 
 function updateWaterPhysics(dt) {

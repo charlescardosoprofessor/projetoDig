@@ -83,11 +83,23 @@
             <button class="btn-master" style="background-color: #F44336; color: white;" onclick="setAllGates(false)">FECHAR TUDO</button>
         </div>
 
+        <h4>Câmaras</h4>
+        <button id="btn-mosaic" onclick="toggleMosaic()" style="width: 100%; padding: 10px; background-color: #5E35B1; color: white; margin-top: 5px;">
+            📺 ABRIR MOSAICO (3 ÂNGULOS)
+        </button>
+
         <h4>Ambiente</h4>
         <button id="btn-rain" onclick="toggleRain()" style="width: 100%; padding: 10px; background-color: #607D8B; color: white; margin-top: 5px;">
             ATIVAR CHUVA
         </button>
     </div>
+
+    <div id="mosaic-labels">
+        <span class="mosaic-label" id="ml-0">📷 Visão Geral</span>
+        <span class="mosaic-label" id="ml-1">📷 Vista Superior</span>
+        <span class="mosaic-label" id="ml-2">📷 Vista Frontal do Canal</span>
+    </div>
+    <button id="btn-mosaic-back" onclick="toggleMosaic()">⬅ VOLTAR À VISÃO ÚNICA</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="main.js"></script>
